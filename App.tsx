@@ -22,7 +22,7 @@ const FILTERS: ReadingFilter[] = ['todos', 'quero_ler', 'lendo', 'lido'];
 
 function Main() {
   const insets = useSafeAreaInsets();
-  const { ready, addBook, setBookStatus, filtered, meta } = useReadingList();
+  const { ready, addBook, setBookStatus, removeBook, filtered, meta } = useReadingList();
   const [filter, setFilter] = useState<ReadingFilter>('todos');
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -80,7 +80,9 @@ function Main() {
         ListEmptyComponent={
           <Text style={styles.empty}>Nenhum livro neste filtro. Toque em + para adicionar.</Text>
         }
-        renderItem={({ item }) => <BookCard book={item} onChangeStatus={setBookStatus} />}
+        renderItem={({ item }) => (
+          <BookCard book={item} onChangeStatus={setBookStatus} onRemoveBook={removeBook} />
+        )}
       />
 
       <Pressable

@@ -13,9 +13,13 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.readinglist.listaleitura"
     },
     "android": {
+      "package": "com.readinglist.listaleitura",
+      "playStoreUrl": "https://play.google.com/store/apps/details?id=com.readinglist.listaleitura",
+      "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"

@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -10,6 +11,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GENRE_LABELS } from '../theme/genreGradients';
 import type { BookGenre } from '../types';
@@ -23,9 +25,34 @@ type Props = {
 };
 
 export function AddBookModal({ visible, onClose, onAdd }: Props) {
+  const insets = useSafeAreaInsets();
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
   const [genre, setGenre] = useState<BookGenre>('ficcao');
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const subShow = Keyboard.addListener(showEvt, (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+    const subHide = Keyboard.addListener(hideEvt, () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      subShow.remove();
+      subHide.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!visible) {
+      setKeyboardHeight(0);
+    }
+  }, [visible]);
 
   const submit = () => {
     if (!title.trim() || !author.trim()) return;
@@ -33,59 +60,84 @@ export function AddBookModal({ visible, onClose, onAdd }: Props) {
     setTitle('');
     setAuthor('');
     setGenre('ficcao');
+    Keyboard.dismiss();
     onClose();
   };
+
+  const bottomPad = Math.max(insets.bottom, 12) + keyboardHeight;
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.backdrop}
+        style={styles.flex}
+        keyboardVerticalOffset={0}
       >
-        <Pressable style={styles.scrim} onPress={onClose} />
-        <View style={styles.sheet}>
-          <Text style={styles.sheetTitle}>Novo livro</Text>
-          <Text style={styles.label}>Título</Text>
-          <TextInput
-            placeholder="Ex.: Duna"
-            placeholderTextColor="#9ca3af"
-            value={title}
-            onChangeText={setTitle}
-            style={styles.input}
-          />
-          <Text style={styles.label}>Autor</Text>
-          <TextInput
-            placeholder="Ex.: Frank Herbert"
-            placeholderTextColor="#9ca3af"
-            value={author}
-            onChangeText={setAuthor}
-            style={styles.input}
-          />
-          <Text style={styles.label}>Gênero</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.genreRow}>
-            {GENRES.map((g) => {
-              const selected = genre === g;
-              return (
-                <Pressable
-                  key={g}
-                  onPress={() => setGenre(g)}
-                  style={[styles.genreChip, selected && styles.genreChipSelected]}
-                >
-                  <Text style={[styles.genreChipText, selected && styles.genreChipTextSelected]}>
-                    {GENRE_LABELS[g]}
-                  </Text>
-                </Pressable>
-              );
-            })}
+        <Pressable
+          style={styles.scrim}
+          onPress={() => {
+            Keyboard.dismiss();
+            onClose();
+          }}
+        />
+        <View style={[styles.sheetWrap, { paddingBottom: bottomPad }]}>
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+            bounces={false}
+          >
+            <Text style={styles.sheetTitle}>Novo livro</Text>
+            <Text style={styles.label}>Título</Text>
+            <TextInput
+              placeholder="Ex.: Duna"
+              placeholderTextColor="#9ca3af"
+              value={title}
+              onChangeText={setTitle}
+              style={styles.input}
+              returnKeyType="next"
+            />
+            <Text style={styles.label}>Autor</Text>
+            <TextInput
+              placeholder="Ex.: Frank Herbert"
+              placeholderTextColor="#9ca3af"
+              value={author}
+              onChangeText={setAuthor}
+              style={styles.input}
+              returnKeyType="done"
+              onSubmitEditing={submit}
+            />
+            <Text style={styles.label}>Gênero</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.genreRow}
+              keyboardShouldPersistTaps="handled"
+            >
+              {GENRES.map((g) => {
+                const selected = genre === g;
+                return (
+                  <Pressable
+                    key={g}
+                    onPress={() => setGenre(g)}
+                    style={[styles.genreChip, selected && styles.genreChipSelected]}
+                  >
+                    <Text style={[styles.genreChipText, selected && styles.genreChipTextSelected]}>
+                      {GENRE_LABELS[g]}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+            <View style={styles.actions}>
+              <Pressable onPress={onClose} style={styles.btnGhost}>
+                <Text style={styles.btnGhostText}>Cancelar</Text>
+              </Pressable>
+              <Pressable onPress={submit} style={styles.btnPrimary}>
+                <Text style={styles.btnPrimaryText}>Adicionar</Text>
+              </Pressable>
+            </View>
           </ScrollView>
-          <View style={styles.actions}>
-            <Pressable onPress={onClose} style={styles.btnGhost}>
-              <Text style={styles.btnGhostText}>Cancelar</Text>
-            </Pressable>
-            <Pressable onPress={submit} style={styles.btnPrimary}>
-              <Text style={styles.btnPrimaryText}>Adicionar</Text>
-            </Pressable>
-          </View>
         </View>
       </KeyboardAvoidingView>
     </Modal>
@@ -93,7 +145,7 @@ export function AddBookModal({ visible, onClose, onAdd }: Props) {
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
+  flex: {
     flex: 1,
     justifyContent: 'flex-end',
   },
@@ -101,13 +153,17 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.35)',
   },
-  sheet: {
+  sheetWrap: {
+    maxHeight: '88%',
     backgroundColor: '#fff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingHorizontal: 20,
     paddingTop: 20,
-    paddingBottom: 28,
+  },
+  scrollContent: {
+    paddingBottom: 8,
+    flexGrow: 1,
   },
   sheetTitle: {
     fontSize: 20,
@@ -157,6 +213,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     gap: 12,
+    marginTop: 4,
   },
   btnGhost: {
     paddingVertical: 12,

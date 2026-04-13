@@ -101,6 +101,14 @@ export function useReadingList() {
     });
   }, []);
 
+  const removeBook = useCallback((id: string) => {
+    setBooks((prev) => {
+      const next = prev.filter((b) => b.id !== id);
+      void saveBooks(next);
+      return next;
+    });
+  }, []);
+
   const filtered = useCallback(
     (filter: ReadingFilter) => {
       if (filter === 'todos') return books;
@@ -123,6 +131,7 @@ export function useReadingList() {
     ready,
     addBook,
     setBookStatus,
+    removeBook,
     filtered,
     meta,
   };
