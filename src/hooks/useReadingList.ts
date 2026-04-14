@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { maybeRequestStoreReviewOnFirstFinish } from '../lib/maybeRequestStoreReview';
+import { maybeRequestStoreReviewAfterMarkingLido } from '../lib/maybeRequestStoreReview';
 import type { Book, BookGenre, ReadingFilter, ReadingStatus } from '../types';
 
 const BOOKS_KEY = '@reading_list/books_v1';
@@ -95,7 +95,7 @@ export function useReadingList() {
       const after = countFinished(next);
       void saveBooks(next);
       if (status === 'lido') {
-        void maybeRequestStoreReviewOnFirstFinish(before, after);
+        void maybeRequestStoreReviewAfterMarkingLido(before, after);
       }
       return next;
     });

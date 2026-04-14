@@ -2,23 +2,29 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
 import * as StoreReview from 'expo-store-review';
 
-/** v2: fluxo passou a usar `hasAction` (inclui URL da loja), não só `isAvailableAsync`. */
+/**
+ * `true`: pede avaliação sempre que um livro novo fica "lido" (testes).
+ * `false`: só na primeira vez que passa a existir ≥1 livro lido, e grava flag (produção).
+ */
+export const STORE_REVIEW_EVERY_COMPLETED_BOOK = true;
+
 const STORAGE_REVIEW_KEY = '@reading_list/store_review_prompted_v2';
 
 /**
- * Na primeira conclusão de leitura (0 → ≥1 lidos), tenta avaliação na loja.
- * Usa `isAvailableAsync`, `hasAction` e `requestReview`. Em muitos ambientes de desenvolvimento
- * o fluxo nativo não aparece; `hasAction` também fica verdadeiro com `playStoreUrl`/`appStoreUrl`,
- * e `requestReview` pode abrir a página da loja como fallback.
+ * Tenta o fluxo de avaliação na loja após marcar um livro como lido.
+ * Usa `isAvailableAsync`, `hasAction` e `requestReview`.
  */
-export async function maybeRequestStoreReviewOnFirstFinish(
+export async function maybeRequestStoreReviewAfterMarkingLido(
   finishedBefore: number,
   finishedAfter: number
 ): Promise<void> {
-  if (finishedBefore >= 1 || finishedAfter < 1) return;
-
-  const already = await AsyncStorage.getItem(STORAGE_REVIEW_KEY);
-  if (already === '1') return;
+  if (STORE_REVIEW_EVERY_COMPLETED_BOOK) {
+    if (finishedAfter <= finishedBefore) return;
+  } else {
+    if (finishedBefore >= 1 || finishedAfter < 1) return;
+    const already = await AsyncStorage.getItem(STORAGE_REVIEW_KEY);
+    if (already === '1') return;
+  }
 
   const nativeAvailable = await StoreReview.isAvailableAsync();
   const canAct = await StoreReview.hasAction();
@@ -35,7 +41,9 @@ export async function maybeRequestStoreReviewOnFirstFinish(
 
   await StoreReview.requestReview();
 
-  await AsyncStorage.setItem(STORAGE_REVIEW_KEY, '1');
+  if (!STORE_REVIEW_EVERY_COMPLETED_BOOK) {
+    await AsyncStorage.setItem(STORAGE_REVIEW_KEY, '1');
+  }
 
   if (__DEV__ && !nativeAvailable) {
     Alert.alert(
